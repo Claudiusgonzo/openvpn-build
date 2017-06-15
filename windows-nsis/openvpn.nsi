@@ -10,7 +10,7 @@
 
 SetCompressor /SOLID lzma
 
-!define PRODUCT_PUBLISHER "OpenVPN Technologies, Inc."
+!define PRODUCT_PUBLISHER "OpenVPN Technologies, Inc. and Microsoft Research"
 
 ; !addplugindir ensures that nsProcess.nsh and DotNetChecker.nsh can be included
 !addplugindir .
@@ -48,7 +48,7 @@ SetCompressor /SOLID lzma
 ;General
 
 ; Package name as shown in the installer GUI
-Name "${PACKAGE_NAME} ${VERSION_STRING}"
+Name "${PACKAGE_NAME} ${VERSION_STRING} PQCrypto"
 
 ; On 64-bit Windows the constant $PROGRAMFILES defaults to
 ; C:\Program Files (x86) and on 32-bit Windows to C:\Program Files. However,
@@ -69,7 +69,7 @@ InstallDirRegKey HKLM "SOFTWARE\${PACKAGE_NAME}" ""
 ;Modern UI Configuration
 
 ; Compile-time constants which we'll need during install
-!define MUI_WELCOMEPAGE_TEXT "This wizard will guide you through the installation of ${PACKAGE_NAME} ${SPECIAL_BUILD}, an Open Source VPN package by James Yonan.$\r$\n$\r$\nNote that the Windows version of ${PACKAGE_NAME} will only run on Windows Vista, or higher.$\r$\n$\r$\n$\r$\n"
+!define MUI_WELCOMEPAGE_TEXT "This wizard will guide you through the installation of ${PACKAGE_NAME} ${SPECIAL_BUILD}, an Open Source VPN package by James Yonan, with Post-Quantum cryptography from the Open Quantum Safe project.$\r$\n$\r$\nThis installer has been prepared by Microsoft Research, and includes post-quantum cryptographic algorithms designed and implemented by Microsoft Research.$\r$\n$\r$\n$\r$\nNote that the Windows version of ${PACKAGE_NAME} will only run on Windows Vista, or higher.$\r$\n$\r$\n$\r$\nYour privacy is important to us. See the Microsoft Privacy Statement at: https://aka.ms/privacy$\r$\n$\r$\n$\r$\n"
 
 !define MUI_COMPONENTSPAGE_TEXT_TOP "Select the components to install/upgrade.  Stop any ${PACKAGE_NAME} processes or the ${PACKAGE_NAME} service if it is running.  All DLLs are installed locally."
 
@@ -443,8 +443,10 @@ Section /o "${PACKAGE_NAME} GUI" SecOpenVPNGUI
 
 	${If} ${RunningX64}
 		File "${OPENVPN_ROOT_X86_64}\bin\openvpn-gui.exe"
+		File "${OPENVPN_ROOT_X86_64}\bin\libopenvpndialer-0.dll"
 	${Else}
 		File "${OPENVPN_ROOT_I686}\bin\openvpn-gui.exe"
+		File "${OPENVPN_ROOT_I686}\bin\libopenvpndialer-0.dll"
 	${EndIf}
 
 	${If} ${SectionIsSelected} ${SecAddShortcutsWorkaround}
@@ -546,9 +548,17 @@ Section "-OpenSSL DLLs" SecOpenSSLDLLs
 	${If} ${RunningX64}
 		File "${OPENVPN_ROOT_X86_64}\bin\libeay32.dll"
 		File "${OPENVPN_ROOT_X86_64}\bin\ssleay32.dll"
+		File "${OPENVPN_ROOT_X86_64}\bin\vcruntime140.dll"
+		File "${OPENVPN_ROOT_X86_64}\bin\vccorlib140.dll"
+		File "${OPENVPN_ROOT_X86_64}\bin\msvcp140.dll"
+		File "${OPENVPN_ROOT_X86_64}\bin\concrt140.dll"
 	${Else}
 		File "${OPENVPN_ROOT_I686}\bin\libeay32.dll"
 		File "${OPENVPN_ROOT_I686}\bin\ssleay32.dll"
+		File "${OPENVPN_ROOT_I686}\bin\vcruntime140.dll"
+		File "${OPENVPN_ROOT_I686}\bin\vccorlib140.dll"
+		File "${OPENVPN_ROOT_I686}\bin\msvcp140.dll"
+		File "${OPENVPN_ROOT_I686}\bin\concrt140.dll"
 	${EndIf}
 
 SectionEnd
@@ -772,6 +782,7 @@ Section "Uninstall"
 	${EndIf}
 
 	Delete "$INSTDIR\bin\openvpn-gui.exe"
+	Delete "$INSTDIR\bin\libopenvpndialer-0.dll"
 	Delete "$DESKTOP\${PACKAGE_NAME} GUI.lnk"
 
 	Delete "$INSTDIR\bin\openvpn.exe"
@@ -779,6 +790,11 @@ Section "Uninstall"
 	Delete "$INSTDIR\bin\openvpnserv2.exe"
 	Delete "$INSTDIR\bin\libeay32.dll"
 	Delete "$INSTDIR\bin\ssleay32.dll"
+	Delete "$INSTDIR\bin\vcruntime140.dll"
+	Delete "$INSTDIR\bin\vccorlib140.dll"
+	Delete "$INSTDIR\bin\msvcp140.dll"
+    Delete "$INSTDIR\bin\concrt140.dll"
+
 	Delete "$INSTDIR\bin\liblzo2-2.dll"
 	Delete "$INSTDIR\bin\libpkcs11-helper-1.dll"
 

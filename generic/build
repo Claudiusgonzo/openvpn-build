@@ -302,6 +302,22 @@ pack() {
 	local X="${CHOST:-$(gcc -dumpmachine)}"
 	(cd "${IMAGEROOT}" && find src ) | bzip2 > "${IMAGEROOT}/openvpn-${X}-${BUILD_VERSION}-srclist.bz2" || die "srclist"
 	tar -cjf "${IMAGEROOT}/openvpn-${X}-${BUILD_VERSION}-src.tar.bz2" -C "${IMAGEROOT}" src || die "src"
+
+    # Before creating a pack of the binaries, replace stock OpenSSL with OQS-OpenSSL
+    case "${IMAGEROOT}" in
+    *"i686"*)
+        echo "Copying OQS-OpenSSL binaries (x86)";
+        echo "current directory is " `pwd`
+        cp ../../../oqs-openssl-win/x86/* "${OPENVPN_ROOT}/bin/";
+        ;;
+
+    *"x86_64"*)
+        echo "Copying OQS-OpenSSL binaries (x64)"
+        echo "current directory is " `pwd`
+        cp ../../../oqs-openssl-win/x64/* "${OPENVPN_ROOT}/bin/"
+        ;;
+    esac
+
 	tar -cjf "${IMAGEROOT}/openvpn-${X}-${BUILD_VERSION}-bin.tar.bz2" -C "${OPENVPN_ROOT}" . || die "openvpn"
 }
 
@@ -361,7 +377,9 @@ PATCHDIR="${SCRIPTROOT}/patches"
 . "${SCRIPTROOT}/build.vars" || die "Cannot source build.vars"
 
 echo "${CHOST:-$(gcc -dumpmachine)}" | grep mingw > /dev/null && BUILD_FOR_WINDOWS=1
-which "${WGET}" > /dev/null 2>&1 && WGET_MODE=1
+
+#Disable wget, force curl to be used instead
+WGET_MODE=
 
 CONFIGOPTS=" \
 	--prefix=${TARGET_ROOT} \

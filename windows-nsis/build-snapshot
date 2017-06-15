@@ -12,9 +12,9 @@ get_full_path() {
 }
 
 GIT="${GIT:-git}"
-OPENVPN_VERSION="${OPENVPN_VERSION:-2.5_git}"; export OPENVPN_VERSION
+OPENVPN_VERSION="${OPENVPN_VERSION:-2.4}"; export OPENVPN_VERSION
 OPENVPN_BRANCH="${OPENVPN_BRANCH:-master}"
-OPENVPN_URL="${OPENVPN_URL:-http://github.com/OpenVPN/openvpn.git}"
+OPENVPN_URL="${OPENVPN_URL:-file://../openvpn-2.4}"
 
 SCRIPTROOT="$(get_full_path "$(dirname "$0")")"
 TMPDIR="${SCRIPTROOT}/tmp-$$"
@@ -29,7 +29,7 @@ main() {
 	rm -fr "${TMPDIR}"
 	mkdir "${TMPDIR}" || die "tmp.mkdir"
 	cd "${TMPDIR}"
-	git clone -q --depth 1 --branch "${OPENVPN_BRANCH}" "${OPENVPN_URL}" || die "openvpn.clone"
+	git clone -q --depth 1 --branch "${OPENVPN_BRANCH}" "${OPENVPN_URL}" openvpn || die "openvpn.clone"
 	cd openvpn
 	autoreconf -ivf || die "autoreconf.openvpn"
 	./configure --disable-lzo --disable-lz4 || die "openvpn.configure"
