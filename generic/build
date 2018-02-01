@@ -70,6 +70,7 @@ download1() {
 download() {
 	for url in \
 		${LZO_URL} \
+		${LIBOQS_URL} \
 		${OPENSSL_URL} \
 		${PKCS11_HELPER_URL} \
 		${TAP_WINDOWS_URL} \
@@ -79,7 +80,7 @@ download() {
 		download1 "${url}"
 	done
 
-	if [ "$(ls "${SOURCESROOT}" | wc -l | sed 's/[ \t]//g')" != 6 ]; then
+	if [ "$(ls "${SOURCESROOT}" | wc -l | sed 's/[ \t]//g')" != 7 ]; then
 		die "sources is unclean."
 	fi
 }
@@ -186,9 +187,40 @@ build_dep() {
 	fi
 
 	if [ -n "${USE_DEP_CACHE}" ]; then
+	    depcache_extract liboqs
+    else
+		echo "Build liboqs"
+		cd "${BUILDROOT}/liboqs"* || die "cd liboqs"
+
+		mkdir build-win && cd build-win || die "mkdir build-win"
+
+		cmake -GNinja -DCMAKE_TOOLCHAIN_FILE=../.CMake/toolchain_windows-amd64.cmake \
+		    -DCMAKE_INSTALL_PREFIX=${BUILDROOT}/openssl-${OPENSSL_VERSION}/oqs .. || die "cmake"
+
+		ninja || die "ninja"
+		# We install later. See the notes a little further below for why.
+
+		[ -n "${SAVE_DEP_CACHE}" ] && depcache_save liboqs
+	fi
+
+	if [ -n "${USE_DEP_CACHE}" ]; then
 		depcache_extract openssl
 	else
 		echo "Build openssl"
+		cd "${BUILDROOT}/openssl"* || die "cd openssl"
+
+		# Because we copy our own OQS-OpenSSL repo, there will be build artifacts left over from the Linux build
+		# if the Linux build ran first. Clear those out because their presence will interfere with the Windows build.
+		if [ -f Makefile ]; then
+			make distclean
+			# Additional files we want gone after make clean.
+			rm -f libcrypto.so.1.1 libssl.so.1.1 || true
+		fi
+
+		# Now install the liboqs Windows build outputs.
+		cd "${BUILDROOT}/liboqs"* || die "cd liboqs"
+		cd build-win || die "cd build"
+		ninja install || die "ninja install"
 		cd "${BUILDROOT}/openssl"* || die "cd openssl"
 
 		./Configure --prefix="/${TARGET_ROOT}" --cross-compile-prefix=${CHOST:+${CHOST}-} \
@@ -302,22 +334,6 @@ pack() {
 	local X="${CHOST:-$(gcc -dumpmachine)}"
 	(cd "${IMAGEROOT}" && find src ) | bzip2 > "${IMAGEROOT}/openvpn-${X}-${BUILD_VERSION}-srclist.bz2" || die "srclist"
 	tar -cjf "${IMAGEROOT}/openvpn-${X}-${BUILD_VERSION}-src.tar.bz2" -C "${IMAGEROOT}" src || die "src"
-
-    # Before creating a pack of the binaries, replace stock OpenSSL with OQS-OpenSSL
-    case "${IMAGEROOT}" in
-    *"i686"*)
-        echo "Copying OQS-OpenSSL binaries (x86)";
-        echo "current directory is " `pwd`
-        cp ../../../oqs-openssl-win/x86/* "${OPENVPN_ROOT}/bin/";
-        ;;
-
-    *"x86_64"*)
-        echo "Copying OQS-OpenSSL binaries (x64)"
-        echo "current directory is " `pwd`
-        cp ../../../oqs-openssl-win/x64/* "${OPENVPN_ROOT}/bin/"
-        ;;
-    esac
-
 	tar -cjf "${IMAGEROOT}/openvpn-${X}-${BUILD_VERSION}-bin.tar.bz2" -C "${OPENVPN_ROOT}" . || die "openvpn"
 }
 

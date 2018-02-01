@@ -312,16 +312,12 @@ Section "${PACKAGE_NAME} User-Space Components" SecOpenVPNUserSpace
 	SetOverwrite on
 
 	SetOutPath "$INSTDIR\bin"
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\openvpn.exe"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\openvpn.exe"
-	${EndIf}
+	File "${OPENVPN_ROOT_X86_64}\bin\openvpn.exe"
 
 	SetOutPath "$INSTDIR\doc"
 	File "INSTALL-win32.txt"
 	File "ThirdPartyNotice.txt"
-	File "${OPENVPN_ROOT_I686}\share\doc\openvpn\openvpn.8.html"
+	File "${OPENVPN_ROOT_X86_64}\share\doc\openvpn\openvpn.8.html"
 
 	${If} ${SectionIsSelected} ${SecAddShortcutsWorkaround}
 		CreateDirectory "$SMPROGRAMS\${PACKAGE_NAME}\Documentation"
@@ -355,11 +351,7 @@ Function CoreSetup
 
 	SetOutPath "$INSTDIR\bin"
 	; Copy openvpnserv.exe for interactive service
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\openvpnserv.exe"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\openvpnserv.exe"
-	${EndIf}
+	File "${OPENVPN_ROOT_X86_64}\bin\openvpnserv.exe"
 
 	SetOutPath "$INSTDIR\config"
 
@@ -375,9 +367,9 @@ Function CoreSetup
 	FileClose $R0
 
 	SetOutPath "$INSTDIR\sample-config"
-	File "${OPENVPN_ROOT_I686}\share\doc\openvpn\sample\sample.${OPENVPN_CONFIG_EXT}"
-	File "${OPENVPN_ROOT_I686}\share\doc\openvpn\sample\client.${OPENVPN_CONFIG_EXT}"
-	File "${OPENVPN_ROOT_I686}\share\doc\openvpn\sample\server.${OPENVPN_CONFIG_EXT}"
+	File "${OPENVPN_ROOT_X86_64}\share\doc\openvpn\sample\sample.${OPENVPN_CONFIG_EXT}"
+	File "${OPENVPN_ROOT_X86_64}\share\doc\openvpn\sample\client.${OPENVPN_CONFIG_EXT}"
+	File "${OPENVPN_ROOT_X86_64}\share\doc\openvpn\sample\server.${OPENVPN_CONFIG_EXT}"
 
 	CreateDirectory "$INSTDIR\log"
 	FileOpen $R0 "$INSTDIR\log\README.txt" w
@@ -443,13 +435,8 @@ Section /o "${PACKAGE_NAME} GUI" SecOpenVPNGUI
 	SetOverwrite on
 	SetOutPath "$INSTDIR\bin"
 
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\openvpn-gui.exe"
-		File "${OPENVPN_ROOT_X86_64}\bin\libopenvpndialer-0.dll"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\openvpn-gui.exe"
-		File "${OPENVPN_ROOT_I686}\bin\libopenvpndialer-0.dll"
-	${EndIf}
+	File "${OPENVPN_ROOT_X86_64}\bin\openvpn-gui.exe"
+	File "${OPENVPN_ROOT_X86_64}\bin\libopenvpndialer-0.dll"
 
 	${If} ${SectionIsSelected} ${SecAddShortcutsWorkaround}
 		CreateDirectory "$SMPROGRAMS\${PACKAGE_NAME}"
@@ -477,11 +464,7 @@ Section "-OpenSSL Utilities" SecOpenSSLUtilities
 
 	SetOverwrite on
 	SetOutPath "$INSTDIR\bin"
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\openssl.exe"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\openssl.exe"
-	${EndIf}
+	File "${OPENVPN_ROOT_X86_64}\bin\openssl.exe"
 
 SectionEnd
 
@@ -547,19 +530,7 @@ Section "-OpenSSL DLLs" SecOpenSSLDLLs
 
 	SetOverwrite on
 	SetOutPath "$INSTDIR\bin"
-	${If} ${RunningX64}
-		File /x liblzo2-2.dll /x libpkcs11-helper-1.dll "${OPENVPN_ROOT_X86_64}\bin\*.dll"
-		File "${OPENVPN_ROOT_X86_64}\bin\vcruntime140.dll"
-		File "${OPENVPN_ROOT_X86_64}\bin\vccorlib140.dll"
-		File "${OPENVPN_ROOT_X86_64}\bin\msvcp140.dll"
-		File "${OPENVPN_ROOT_X86_64}\bin\concrt140.dll"
-	${Else}
-		File /x liblzo2-2.dll /x libpkcs11-helper-1.dll "${OPENVPN_ROOT_I686}\bin\*.dll"
-		File "${OPENVPN_ROOT_I686}\bin\vcruntime140.dll"
-		File "${OPENVPN_ROOT_I686}\bin\vccorlib140.dll"
-		File "${OPENVPN_ROOT_I686}\bin\msvcp140.dll"
-		File "${OPENVPN_ROOT_I686}\bin\concrt140.dll"
-	${EndIf}
+	File /x liblzo2-2.dll /x libpkcs11-helper-1.dll "${OPENVPN_ROOT_X86_64}\bin\*.dll"
 
 SectionEnd
 
@@ -567,11 +538,7 @@ Section "-LZO DLLs" SecLZODLLs
 
 	SetOverwrite on
 	SetOutPath "$INSTDIR\bin"
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\liblzo2-2.dll"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\liblzo2-2.dll"
-	${EndIf}
+	File "${OPENVPN_ROOT_X86_64}\bin\liblzo2-2.dll"
 
 SectionEnd
 
@@ -579,11 +546,7 @@ Section "-PKCS#11 DLLs" SecPKCS11DLLs
 
 	SetOverwrite on
 	SetOutPath "$INSTDIR\bin"
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\libpkcs11-helper-1.dll"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\libpkcs11-helper-1.dll"
-	${EndIf}
+	File "${OPENVPN_ROOT_X86_64}\bin\libpkcs11-helper-1.dll"
 
 SectionEnd
 
@@ -612,13 +575,18 @@ ${IfNot} ${AtLeastWinVista}
 
 ${EndIf}
 
-	${If} ${RunningX64}
-		SetRegView 64
-		; Change the installation directory to C:\Program Files, but only if the
-		; user has not provided a custom install location.
-		${If} "$INSTDIR" == "$PROGRAMFILES\${PACKAGE_NAME}"
-			StrCpy $INSTDIR "$PROGRAMFILES64\${PACKAGE_NAME}"
-		${EndIf}
+${IfNot} ${RunningX64}
+
+    MessageBox MB_OK|MB_ICONEXCLAMATION "This version of OpenVPN only supports 64-bit systems."
+    Quit
+
+${EndIf}
+
+	SetRegView 64
+	; Change the installation directory to C:\Program Files, but only if the
+	; user has not provided a custom install location.
+	${If} "$INSTDIR" == "$PROGRAMFILES\${PACKAGE_NAME}"
+		StrCpy $INSTDIR "$PROGRAMFILES64\${PACKAGE_NAME}"
 	${EndIf}
 
 	!insertmacro SelectByParameter ${SecAddShortcutsWorkaround} SELECT_SHORTCUTS 1
@@ -788,18 +756,10 @@ Section "Uninstall"
 	Delete "$INSTDIR\bin\openvpn.exe"
 	Delete "$INSTDIR\bin\openvpnserv.exe"
 	Delete "$INSTDIR\bin\openvpnserv2.exe"
-	Delete "$INSTDIR\bin\libeay32.dll"
-	Delete "$INSTDIR\bin\ssleay32.dll"
-	Delete "$INSTDIR\bin\vcruntime140.dll"
-	Delete "$INSTDIR\bin\vccorlib140.dll"
-	Delete "$INSTDIR\bin\msvcp140.dll"
-    Delete "$INSTDIR\bin\concrt140.dll"
 
 	Delete "$INSTDIR\bin\liblzo2-2.dll"
 	Delete "$INSTDIR\bin\libpkcs11-helper-1.dll"
-	Delete "$INSTDIR\bin\libcrypto-1_1.dll"
 	Delete "$INSTDIR\bin\libcrypto-1_1-x64.dll"
-	Delete "$INSTDIR\bin\libssl-1_1.dll"
 	Delete "$INSTDIR\bin\libssl-1_1-x64.dll"
 
 	Delete "$INSTDIR\config\README.txt"
