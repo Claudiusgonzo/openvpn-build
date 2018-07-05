@@ -1,6 +1,7 @@
 #!/bin/sh
 # OpenVPN Project Cross Compile Build
 # Copyright (C) 2008-2012 Alon Bar-Lev <alon.barlev@gmail.com>
+# Portions Copyright (C) 2018 Microsoft Corporation
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

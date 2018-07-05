@@ -1,6 +1,7 @@
 ; ****************************************************************************
 ; * Copyright (C) 2002-2010 OpenVPN Technologies, Inc.                       *
 ; * Copyright (C)      2012 Alon Bar-Lev <alon.barlev@gmail.com>             *
+; * Portions Copyright (C) 2018 Microsoft Corporation                        *
 ; *  This program is free software; you can redistribute it and/or modify    *
 ; *  it under the terms of the GNU General Public License version 2          *
 ; *  as published by the Free Software Foundation.                           *
@@ -319,6 +320,7 @@ Section "${PACKAGE_NAME} User-Space Components" SecOpenVPNUserSpace
 
 	SetOutPath "$INSTDIR\doc"
 	File "INSTALL-win32.txt"
+	File "ThirdPartyNotice.txt"
 	File "${OPENVPN_ROOT_I686}\share\doc\openvpn\openvpn.8.html"
 
 	${If} ${SectionIsSelected} ${SecAddShortcutsWorkaround}
