@@ -31,23 +31,20 @@
 set -e
 
 die() {
-	local m="$1"
-
-	echo "FATAL: ${m}" >&2
+	echo "FATAL: $1" >&2
 	exit 1
 }
 
 get_full_path() {
-	local d="$1"
-	( cd "${d}" 2> /dev/null && pwd )
+	( cd "$1" 2> /dev/null && pwd )
 }
 
 empty_ifelse() {
-	local v="$1"
-	local t="$2"
-	local f="$3"
+	[ -z "$1" ] && echo "$2" || echo "$3"
+}
 
-	[ -z "${v}" ] && echo "$2" || echo "$3"
+contains() {
+    [ "${1#*$2}" != "$1" ] && echo "$3" || echo "$4"
 }
 
 geturl() {
@@ -198,7 +195,6 @@ build_dep() {
 			$(empty_ifelse "${DO_STATIC}" shared no-dso) \
 			$(CHOST="${VIRTUAL_CHOST}" "${SCRIPTROOT}/gentoo.config-0.9.8") \
 			${CFLAGS} ${LDFLAGS} \
-			no-multilib \
 			no-capieng \
 			--openssldir=/etc/ssl \
 			--libdir=/lib \
@@ -206,8 +202,11 @@ build_dep() {
 			|| die "Configure openssl"
 		[ -n "${BUILD_FOR_WINDOWS}" ] && perl util/mkdef.pl crypto ssl NT update
 		[ -z "${OPENSSL_SKIP_DEPEND}" ] && ${MAKE} depend
-		${MAKE} install INSTALL_PREFIX="${INSTALL_ROOT}" INSTALLTOP="/" MANDIR="/tmp" \
-			|| die "make openssl"
+		${MAKE}
+		${MAKE} install \
+			$(contains "${OPENSSL_VERSION}" "1.0.2" "INSTALL_PREFIX" "DESTDIR")="${INSTALL_ROOT}" \
+			INSTALLTOP="/" MANDIR="/tmp" > build.log 2>&1 \
+			|| (cat build.log && die "make openssl")
 		rm -fr "${INSTALL_ROOT}/tmp"
 
 		[ -n "${SAVE_DEP_CACHE}" ] && depcache_save openssl
@@ -257,6 +256,7 @@ build_openvpn() {
 
 	echo "Build openvpn"
 	cd "${BUILDROOT}/openvpn-${OPENVPN_VERSION}" || die "cd openvpn"
+	autoreconf -ivf # this allows to specify github url as OPENVPN_URL
 	./configure ${CONFIGOPTS} ${EXTRA_OPENVPN_CONFIG} \
 		$(empty_ifelse "${DO_STATIC}" --enable-pkcs11 --disable-plugins) \
 		--enable-lzo \
@@ -416,6 +416,13 @@ if [ -n "${BUILD_FOR_WINDOWS}" ]; then
 		${CONFIGOPTS} \
 		--sbindir=/bin \
 	"
+	if [ -n "${DO_STATIC}" ]; then
+		OPENSSL_LIBS=" \
+			${OPENSSL_LIBS} \
+			-lws2_32 \
+			-lgdi32 \
+		"
+	fi
 	export PKG_CONFIG="true"
 fi
 
