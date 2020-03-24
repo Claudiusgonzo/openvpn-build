@@ -436,7 +436,6 @@ Section /o "${PACKAGE_NAME} GUI" SecOpenVPNGUI
 	SetOutPath "$INSTDIR\bin"
 
 	File "${OPENVPN_ROOT_X86_64}\bin\openvpn-gui.exe"
-	File "${OPENVPN_ROOT_X86_64}\bin\libopenvpndialer-0.dll"
 
 	${If} ${SectionIsSelected} ${SecAddShortcutsWorkaround}
 		CreateDirectory "$SMPROGRAMS\${PACKAGE_NAME}"
@@ -750,7 +749,6 @@ Section "Uninstall"
 	${EndIf}
 
 	Delete "$INSTDIR\bin\openvpn-gui.exe"
-	Delete "$INSTDIR\bin\libopenvpndialer-0.dll"
 	Delete "$DESKTOP\${PACKAGE_NAME} GUI.lnk"
 
 	Delete "$INSTDIR\bin\openvpn.exe"
