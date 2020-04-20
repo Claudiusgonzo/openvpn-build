@@ -195,7 +195,8 @@ build_dep() {
 		mkdir build-win && cd build-win || die "mkdir build-win"
 
 		cmake -GNinja -DCMAKE_TOOLCHAIN_FILE=../.CMake/toolchain_windows-amd64.cmake \
-		    -DCMAKE_INSTALL_PREFIX=${BUILDROOT}/openssl-${OPENSSL_VERSION}/oqs .. || die "cmake"
+		    -DCMAKE_INSTALL_PREFIX=${BUILDROOT}/openssl-${OPENSSL_VERSION}/oqs \
+		    -DOQS_USE_CPU_EXTENSIONS=OFF .. || die "cmake"
 
 		ninja || die "ninja"
 		# We install later. See the notes a little further below for why.
