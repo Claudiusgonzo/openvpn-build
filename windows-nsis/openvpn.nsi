@@ -66,6 +66,18 @@ ShowUninstDetails show
 ;Remember install folder
 InstallDirRegKey HKLM "SOFTWARE\${PACKAGE_NAME}" ""
 
+;======================================================
+; Version Information
+
+VIProductVersion "1.0.0.0"
+VIAddVersionKey "ProductName" "OpenVPN-Installer"
+VIAddVersionKey "Comments" ""
+VIAddVersionKey "CompanyName" "OpenVPN Inc."
+VIAddVersionKey "LegalTrademarks" "OpenVPN Inc."
+VIAddVersionKey "LegalCopyright" "OpenVPN Inc."
+VIAddVersionKey "FileDescription" "OpenVPN-Installer"
+VIAddVersionKey "FileVersion" "1.0.0"
+
 ;--------------------------------
 ;Modern UI Configuration
 
@@ -109,6 +121,8 @@ LangString DESC_SecOpenVPNUserSpace ${LANG_ENGLISH} "Install ${PACKAGE_NAME} use
 LangString DESC_SecOpenVPNGUI ${LANG_ENGLISH} "Install ${PACKAGE_NAME} GUI by Mathias Sundman"
 
 LangString DESC_SecTAP ${LANG_ENGLISH} "Install/upgrade the TAP virtual device driver."
+
+LangString DESC_SecWINTUN ${LANG_ENGLISH} "Install/upgrade the Wintun TUN driver."
 
 LangString DESC_SecOpenVPNEasyRSA ${LANG_ENGLISH} "Install EasyRSA 2 scripts for X509 certificate management."
 
@@ -181,6 +195,22 @@ ReserveFile "install-whirl.bmp"
 	${EndIf}
 	Pop $R0
 !macroend
+
+; See http://nsis.sourceforge.net/Check_if_a_file_exists_at_compile_time for documentation
+!macro !DefineIfExists _VAR_NAME _FILE_NAME
+	!tempfile _TEMPFILE
+	!ifdef NSIS_WIN32_MAKENSIS
+		; Windows - cmd.exe
+		!system 'if exist "${_FILE_NAME}" echo !define ${_VAR_NAME} > "${_TEMPFILE}"'
+	!else
+		; Posix - sh
+		!system 'if [ -e "${_FILE_NAME}" ]; then echo "!define ${_VAR_NAME}" > "${_TEMPFILE}"; fi'
+	!endif
+	!include '${_TEMPFILE}'
+	!delfile '${_TEMPFILE}'
+	!undef _TEMPFILE
+!macroend
+!define !DefineIfExists "!insertmacro !DefineIfExists"
 
 Function CacheServiceState
 	; We will set the defaults for a service only if it did not exist before:
@@ -305,6 +335,10 @@ Section /o "-launchondummy" SecLaunchGUIOnLogon0
 	; this is here as we don't want to move that section to the top
 SectionEnd
 
+; tapctl exists starting from 2.5, so make sure script won't explode
+; when building installer for earlier versions
+${!DefineIfExists} TAPCTL_EXISTS "${OPENVPN_ROOT_X86_64}\bin\tapctl.exe"
+
 ; We do not make this hidden as its informative to have displayed, but make it readonly (always selected)
 Section "${PACKAGE_NAME} User-Space Components" SecOpenVPNUserSpace
 
@@ -312,16 +346,21 @@ Section "${PACKAGE_NAME} User-Space Components" SecOpenVPNUserSpace
 	SetOverwrite on
 
 	SetOutPath "$INSTDIR\bin"
+	File "${OPENVPN_ROOT_X86_64}\bin\openvpn.exe"
+
+!ifdef TAPCTL_EXISTS
+	SetOutPath "$INSTDIR\bin"
 	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\openvpn.exe"
+		File "${OPENVPN_ROOT_X86_64}\bin\tapctl.exe"
 	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\openvpn.exe"
+		File "${OPENVPN_ROOT_I686}\bin\tapctl.exe"
 	${EndIf}
+!endif
 
 	SetOutPath "$INSTDIR\doc"
 	File "INSTALL-win32.txt"
 	File "ThirdPartyNotice.txt"
-	File "${OPENVPN_ROOT_I686}\share\doc\openvpn\openvpn.8.html"
+	File "${OPENVPN_ROOT_X86_64}\share\doc\openvpn\openvpn.8.html"
 
 	${If} ${SectionIsSelected} ${SecAddShortcutsWorkaround}
 		CreateDirectory "$SMPROGRAMS\${PACKAGE_NAME}\Documentation"
@@ -346,7 +385,7 @@ Section /o "${PACKAGE_NAME} Service" SecService
 	File /oname=openvpnserv2.exe "${OPENVPNSERV2_EXECUTABLE}"
 
 	DetailPrint "Installing OpenVPN Service..."
-	SimpleSC::InstallService "OpenVPNService" "OpenVPNService" "16" "3" '"$INSTDIR\bin\openvpnserv2.exe"' "tap0901/dhcp" "" ""
+	SimpleSC::InstallService "OpenVPNService" "OpenVPNService" "16" "3" '"$INSTDIR\bin\openvpnserv2.exe"' "dhcp" "" ""
 SectionEnd
 
 Function CoreSetup
@@ -355,11 +394,7 @@ Function CoreSetup
 
 	SetOutPath "$INSTDIR\bin"
 	; Copy openvpnserv.exe for interactive service
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\openvpnserv.exe"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\openvpnserv.exe"
-	${EndIf}
+	File "${OPENVPN_ROOT_X86_64}\bin\openvpnserv.exe"
 
 	SetOutPath "$INSTDIR\config"
 
@@ -375,9 +410,9 @@ Function CoreSetup
 	FileClose $R0
 
 	SetOutPath "$INSTDIR\sample-config"
-	File "${OPENVPN_ROOT_I686}\share\doc\openvpn\sample\sample.${OPENVPN_CONFIG_EXT}"
-	File "${OPENVPN_ROOT_I686}\share\doc\openvpn\sample\client.${OPENVPN_CONFIG_EXT}"
-	File "${OPENVPN_ROOT_I686}\share\doc\openvpn\sample\server.${OPENVPN_CONFIG_EXT}"
+	File "${OPENVPN_ROOT_X86_64}\share\doc\openvpn\sample\sample.${OPENVPN_CONFIG_EXT}"
+	File "${OPENVPN_ROOT_X86_64}\share\doc\openvpn\sample\client.${OPENVPN_CONFIG_EXT}"
+	File "${OPENVPN_ROOT_X86_64}\share\doc\openvpn\sample\server.${OPENVPN_CONFIG_EXT}"
 
 	CreateDirectory "$INSTDIR\log"
 	FileOpen $R0 "$INSTDIR\log\README.txt" w
@@ -410,14 +445,14 @@ Function CoreSetup
 		SimpleSC::SetServiceBinaryPath "OpenVPNServiceInteractive" '"$INSTDIR\bin\openvpnserv.exe"'
 	${Else}
 		DetailPrint "Installing OpenVPN Interactive Service..."
-		SimpleSC::InstallService "OpenVPNServiceInteractive" "OpenVPN Interactive Service" "32" "2" '"$INSTDIR\bin\openvpnserv.exe"' "tap0901/dhcp" "" ""
+		SimpleSC::InstallService "OpenVPNServiceInteractive" "OpenVPN Interactive Service" "32" "2" '"$INSTDIR\bin\openvpnserv.exe"' "dhcp" "" ""
 	${EndIf}
 
 	${If} $legacy_service_existed == 0
 		SimpleSC::SetServiceBinaryPath "OpenVPNServiceLegacy" '"$INSTDIR\bin\openvpnserv.exe"'
 	${Else}
 		DetailPrint "Installing OpenVPN Legacy Service..."
-		SimpleSC::InstallService "OpenVPNServiceLegacy" "OpenVPN Legacy Service" "32" "3" '"$INSTDIR\bin\openvpnserv.exe"' "tap0901/dhcp" "" ""
+		SimpleSC::InstallService "OpenVPNServiceLegacy" "OpenVPN Legacy Service" "32" "3" '"$INSTDIR\bin\openvpnserv.exe"' "dhcp" "" ""
 	${EndIf}
 
 FunctionEnd
@@ -438,18 +473,41 @@ Section /o "TAP Virtual Ethernet Adapter" SecTAP
 	WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PACKAGE_NAME}" "tap" "installed"
 SectionEnd
 
+!ifdef TAPCTL_EXISTS
+Section "Wintun TUN driver (experimental)" SecWINTUN
+
+	SetOverwrite on
+
+	SetOutPath "$INSTDIR\bin"
+	${If} ${RunningX64}
+		File /oname=wintun.msi "${WINTUN_INSTALLER_X86_64}"
+	${Else}
+		File /oname=wintun.msi "${WINTUN_INSTALLER_I686}"
+	${EndIf}
+
+	DetailPrint "Installing Wintun..."
+	ExecWait '"msiexec" /i "$INSTDIR\bin\wintun.msi" /passive'
+	Pop $R0 # return value/error/timeout
+
+	ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PACKAGE_NAME}" "wintun"
+	${If} $R0 != "installed"
+		DetailPrint "Creating Wintun adapter..."
+		nsExec::ExecToLog /OEM '$INSTDIR\bin\tapctl.exe create --hwid wintun'
+		Pop $R0 # return value/error/timeout
+	${Else}
+		DetailPrint "Wintun adapter already exists, skip creation"
+	${EndIf}
+
+	WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PACKAGE_NAME}" "wintun" "installed"
+SectionEnd
+!endif
+
 Section /o "${PACKAGE_NAME} GUI" SecOpenVPNGUI
 
 	SetOverwrite on
 	SetOutPath "$INSTDIR\bin"
 
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\openvpn-gui.exe"
-		File "${OPENVPN_ROOT_X86_64}\bin\libopenvpndialer-0.dll"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\openvpn-gui.exe"
-		File "${OPENVPN_ROOT_I686}\bin\libopenvpndialer-0.dll"
-	${EndIf}
+	File "${OPENVPN_ROOT_X86_64}\bin\openvpn-gui.exe"
 
 	${If} ${SectionIsSelected} ${SecAddShortcutsWorkaround}
 		CreateDirectory "$SMPROGRAMS\${PACKAGE_NAME}"
@@ -477,11 +535,7 @@ Section "-OpenSSL Utilities" SecOpenSSLUtilities
 
 	SetOverwrite on
 	SetOutPath "$INSTDIR\bin"
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\openssl.exe"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\openssl.exe"
-	${EndIf}
+	File "${OPENVPN_ROOT_X86_64}\bin\openssl.exe"
 
 SectionEnd
 
@@ -547,21 +601,7 @@ Section "-OpenSSL DLLs" SecOpenSSLDLLs
 
 	SetOverwrite on
 	SetOutPath "$INSTDIR\bin"
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\libeay32.dll"
-		File "${OPENVPN_ROOT_X86_64}\bin\ssleay32.dll"
-		File "${OPENVPN_ROOT_X86_64}\bin\vcruntime140.dll"
-		File "${OPENVPN_ROOT_X86_64}\bin\vccorlib140.dll"
-		File "${OPENVPN_ROOT_X86_64}\bin\msvcp140.dll"
-		File "${OPENVPN_ROOT_X86_64}\bin\concrt140.dll"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\libeay32.dll"
-		File "${OPENVPN_ROOT_I686}\bin\ssleay32.dll"
-		File "${OPENVPN_ROOT_I686}\bin\vcruntime140.dll"
-		File "${OPENVPN_ROOT_I686}\bin\vccorlib140.dll"
-		File "${OPENVPN_ROOT_I686}\bin\msvcp140.dll"
-		File "${OPENVPN_ROOT_I686}\bin\concrt140.dll"
-	${EndIf}
+	File /x liblzo2-2.dll /x libpkcs11-helper-1.dll "${OPENVPN_ROOT_X86_64}\bin\*.dll"
 
 SectionEnd
 
@@ -569,11 +609,7 @@ Section "-LZO DLLs" SecLZODLLs
 
 	SetOverwrite on
 	SetOutPath "$INSTDIR\bin"
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\liblzo2-2.dll"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\liblzo2-2.dll"
-	${EndIf}
+	File "${OPENVPN_ROOT_X86_64}\bin\liblzo2-2.dll"
 
 SectionEnd
 
@@ -581,11 +617,7 @@ Section "-PKCS#11 DLLs" SecPKCS11DLLs
 
 	SetOverwrite on
 	SetOutPath "$INSTDIR\bin"
-	${If} ${RunningX64}
-		File "${OPENVPN_ROOT_X86_64}\bin\libpkcs11-helper-1.dll"
-	${Else}
-		File "${OPENVPN_ROOT_I686}\bin\libpkcs11-helper-1.dll"
-	${EndIf}
+	File "${OPENVPN_ROOT_X86_64}\bin\libpkcs11-helper-1.dll"
 
 SectionEnd
 
@@ -614,13 +646,18 @@ ${IfNot} ${AtLeastWinVista}
 
 ${EndIf}
 
-	${If} ${RunningX64}
-		SetRegView 64
-		; Change the installation directory to C:\Program Files, but only if the
-		; user has not provided a custom install location.
-		${If} "$INSTDIR" == "$PROGRAMFILES\${PACKAGE_NAME}"
-			StrCpy $INSTDIR "$PROGRAMFILES64\${PACKAGE_NAME}"
-		${EndIf}
+${IfNot} ${RunningX64}
+
+    MessageBox MB_OK|MB_ICONEXCLAMATION "This version of OpenVPN only supports 64-bit systems."
+    Quit
+
+${EndIf}
+
+	SetRegView 64
+	; Change the installation directory to C:\Program Files, but only if the
+	; user has not provided a custom install location.
+	${If} "$INSTDIR" == "$PROGRAMFILES\${PACKAGE_NAME}"
+		StrCpy $INSTDIR "$PROGRAMFILES64\${PACKAGE_NAME}"
 	${EndIf}
 
 	!insertmacro SelectByParameter ${SecAddShortcutsWorkaround} SELECT_SHORTCUTS 1
@@ -725,6 +762,7 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecService} $(DESC_SecService)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecOpenVPNGUI} $(DESC_SecOpenVPNGUI)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecTAP} $(DESC_SecTAP)
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecWINTUN} $(DESC_SecWINTUN)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecOpenVPNEasyRSA} $(DESC_SecOpenVPNEasyRSA)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecOpenSSLUtilities} $(DESC_SecOpenSSLUtilities)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecOpenSSLDLLs} $(DESC_SecOpenSSLDLLs)
@@ -783,22 +821,26 @@ Section "Uninstall"
 		${EndIf}
 	${EndIf}
 
+	ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PACKAGE_NAME}" "wintun"
+	${If} $R0 == "installed"
+		DetailPrint "Uninstalling Wintun..."
+		ExecWait '"msiexec" /x "$INSTDIR\bin\wintun.msi" /passive'
+		Pop $R0 # return value/error/timeout
+	${EndIf}
+
 	Delete "$INSTDIR\bin\openvpn-gui.exe"
-	Delete "$INSTDIR\bin\libopenvpndialer-0.dll"
 	Delete "$DESKTOP\${PACKAGE_NAME} GUI.lnk"
 
 	Delete "$INSTDIR\bin\openvpn.exe"
 	Delete "$INSTDIR\bin\openvpnserv.exe"
 	Delete "$INSTDIR\bin\openvpnserv2.exe"
-	Delete "$INSTDIR\bin\libeay32.dll"
-	Delete "$INSTDIR\bin\ssleay32.dll"
-	Delete "$INSTDIR\bin\vcruntime140.dll"
-	Delete "$INSTDIR\bin\vccorlib140.dll"
-	Delete "$INSTDIR\bin\msvcp140.dll"
-    Delete "$INSTDIR\bin\concrt140.dll"
-
+	Delete "$INSTDIR\bin\tapctl.exe"
 	Delete "$INSTDIR\bin\liblzo2-2.dll"
 	Delete "$INSTDIR\bin\libpkcs11-helper-1.dll"
+	Delete "$INSTDIR\bin\libcrypto-1_1-x64.dll"
+	Delete "$INSTDIR\bin\libssl-1_1-x64.dll"
+
+	Delete "$INSTDIR\bin\wintun.msi"
 
 	Delete "$INSTDIR\config\README.txt"
 	Delete "$INSTDIR\config\sample.${OPENVPN_CONFIG_EXT}.txt"
